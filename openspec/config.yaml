@@ -1,0 +1,5 @@
+schema: spec-driven
+context: |
+  This repository contains a long-running GitHub research agent used to demonstrate
+  context engineering. The system evaluates open-source alternatives to a commercial
+  product, stores evidence outside the model context, and reacts to OpenSpec changes.
