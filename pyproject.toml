@@ -21,10 +21,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0", "ruff>=0.8.0"]
+dev = ["pytest>=8.0.0", "ruff>=0.8.0", "ipython>=8.0.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/repo_agent"]
 
 [tool.ruff]
 line-length = 100
+

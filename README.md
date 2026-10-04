@@ -66,3 +66,11 @@ The live notebook prints decision reports after base, SSO, and AGPL review stage
 ## Default policy: SSO enforcement disabled
 
 The default CLI and notebook skip `require-enterprise-sso`; the base requirements remain in effect and `allow-agpl` still reopens affected license rejections. SSO verification is neither mandatory nor loaded by default. The notebook exposes `ENABLE_SSO_DEMO = False`; set it to `True` to opt into the stricter policy-change scenario. For the CLI, use `ENABLE_SSO_DEMO=true`. Offline mode defaults to Alpha, Beta and Gamma qualifying; `run_offline(enable_sso_demo=True)` demonstrates Alpha losing eligibility. Real candidates must still verify the other required capabilities, so a non-empty live result is not guaranteed.
+
+## Live method-by-method presentation notebook
+
+[Open Live Context Engineering Lab in Colab](https://colab.research.google.com/github/swarnamalya-mohan/context-engineering-long-running-agent/blob/feature/initial-agent-implementation/notebooks/live_context_methods_demo.ipynb)
+
+A standalone notebook demonstrating eight mechanisms with real OpenAI calls: tool filtering, on-demand skills, scoped memory/deduplication, artifact references, compaction used in a later call, isolated workers, license-policy invalidation and just-in-time documents. Each method shows baseline/optimized prompts, API input/output/cached tokens, results and ground-truth checks for controlled fictional sources. GitHub README mode is optional. The default complete walkthrough makes 25 successful calls, with a 30-call guard; retries and reruns can add requests. Extraction and summarization overhead is logged separately. The examples are deliberately padded to make context reductions visible, not a production performance benchmark. No SSO requirement is enforced.
+
+Notebook logic is tested with a stub API transport; live response quality and model-specific API acceptance require running it with the presenter's key.
