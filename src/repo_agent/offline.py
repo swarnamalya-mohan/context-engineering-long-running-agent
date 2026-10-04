@@ -42,7 +42,8 @@ class FixtureLLM:
         if instructions.startswith("Compact"):
             return LLMResult("Repository reviews completed. Continue under current policy; consult durable evidence.")
         if instructions.startswith("You are the final"):
-            return LLMResult("Verified synthetic finalists: demo/beta and demo/gamma. Alpha lost eligibility after SSO became mandatory.")
+            finalists = json.loads(user_input.split("FINALISTS:\n", 1)[1].split("\n\nDURABLE EVIDENCE:", 1)[0])
+            return LLMResult("Verified synthetic finalists: " + ", ".join(r["repo"] for r in finalists))
         metadata = json.loads(user_input.split("REPOSITORY METADATA:\n", 1)[1].split("\n\nRECENT RELEASES:", 1)[0])
         sso = "SKILL: ENTERPRISE SSO VERIFICATION" in user_input
         supported = not metadata["full_name"].endswith("alpha")
@@ -64,9 +65,9 @@ def fixture_runtime(repo_root):
     return runtime
 
 
-def run_offline(repo_root="."):
+def run_offline(repo_root=".", *, enable_sso_demo=False):
     runtime = fixture_runtime(repo_root)
-    graph = build_graph(settings=runtime.settings, repo_root=repo_root, runtime=runtime)
+    graph = build_graph(settings=runtime.settings, repo_root=repo_root, runtime=runtime, enable_sso_demo=enable_sso_demo)
     config = {"configurable": {"thread_id": "offline-demo"}}
     for update in graph.stream({}, config, stream_mode="updates"):
         phase = next(iter(update))

@@ -41,7 +41,7 @@ python -m repo_agent --stream
 | Reopen | AGPL policy change reopens prior license-only rejections | Gamma is reviewed under the updated policy |
 | Recover | JSON checkpoint retains policy, decisions, evidence, phase and queue | Notebook reconstructs runtime state after clearing history |
 
-Scenario: Alpha and Beta satisfy the base spec. Enterprise SSO becomes mandatory; Alpha fails, Beta remains eligible. Allowing AGPL reopens Gamma, which passes SSO. These names are fictional fixtures.
+Default scenario: Alpha and Beta satisfy the base spec; allowing AGPL adds Gamma. All three are eligible without mandatory SSO. When the optional SSO demo is enabled, Alpha loses eligibility. These names are fictional fixtures.
 
 ## Architecture and limits
 
@@ -62,3 +62,7 @@ The notebook displays per-call token counts, loaded skills, files read, invalida
 Discovery queries product names/descriptions and API-client topics across all four searches before ranking, and filters obvious resource directories. This is a heuristic relevance filter, not exhaustive product discovery. Repository reviews use OpenAI Responses structured parsing with a Pydantic schema; refusals or incomplete output produce an explicit `review_failed` status. The notebook shows review errors separately from policy rejections. An empty recommendation can still be a valid result under mandatory SSO when supplied sources do not verify support.
 
 The live notebook prints decision reports after base, SSO, and AGPL review stages. When no final candidates qualify, final output includes candidate counts, the highest-scoring rejected reviews with full reasons, and pending/failed review statuses. These diagnostics are not endorsements of ineligible candidates.
+
+## Default policy: SSO enforcement disabled
+
+The default CLI and notebook skip `require-enterprise-sso`; the base requirements remain in effect and `allow-agpl` still reopens affected license rejections. SSO verification is neither mandatory nor loaded by default. The notebook exposes `ENABLE_SSO_DEMO = False`; set it to `True` to opt into the stricter policy-change scenario. For the CLI, use `ENABLE_SSO_DEMO=true`. Offline mode defaults to Alpha, Beta and Gamma qualifying; `run_offline(enable_sso_demo=True)` demonstrates Alpha losing eligibility. Real candidates must still verify the other required capabilities, so a non-empty live result is not guaranteed.

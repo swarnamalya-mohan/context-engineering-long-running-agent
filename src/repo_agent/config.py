@@ -12,6 +12,7 @@ class Settings:
     target_repos: int = 30
     deep_review: int = 10
     max_workers: int = 4
+    enable_sso_demo: bool = False
     context_compact_at_tokens: int = 12000
     max_readme_chars: int = 30000
     pruned_readme_chars: int = 8000
@@ -28,4 +29,6 @@ class Settings:
             target_repos=int(os.getenv("TARGET_REPOS", "30")),
             deep_review=int(os.getenv("DEEP_REVIEW", "10")),
             max_workers=int(os.getenv("MAX_WORKERS", "4")),
+            enable_sso_demo=os.getenv("ENABLE_SSO_DEMO", "false").lower() in {"true", "1", "yes"},
         )
+

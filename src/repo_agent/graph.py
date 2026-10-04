@@ -14,9 +14,10 @@ from repo_agent.runtime import AgentRuntime
 from repo_agent.state_store import event
 
 
-def build_graph(*, settings: Settings | None = None, repo_root: str | Path = ".", checkpointer=None, runtime=None):
+def build_graph(*, settings: Settings | None = None, repo_root: str | Path = ".", checkpointer=None, runtime=None, enable_sso_demo: bool | None = None):
     settings = settings or Settings.from_env()
     runtime = runtime or AgentRuntime(settings, repo_root)
+    enable_sso_demo = settings.enable_sso_demo if enable_sso_demo is None else enable_sso_demo
 
     def initialize(state: AgentState) -> dict[str, Any]:
         policy = runtime.initial_policy()
@@ -64,6 +65,18 @@ def build_graph(*, settings: Settings | None = None, repo_root: str | Path = "."
 
     builder = StateGraph(AgentState)
     for name, fn in [("initialize", initialize), ("discover", discover), ("review_base", review_base), ("apply_sso_change", apply_sso_change), ("review_sso", review_sso), ("apply_agpl_change", apply_agpl_change), ("review_agpl", review_agpl), ("compact", compact), ("finalize", finalize)]: builder.add_node(name, fn)
-    builder.add_edge(START, "initialize"); builder.add_edge("initialize", "discover"); builder.add_edge("discover", "review_base"); builder.add_edge("review_base", "apply_sso_change"); builder.add_edge("apply_sso_change", "review_sso"); builder.add_edge("review_sso", "apply_agpl_change"); builder.add_edge("apply_agpl_change", "review_agpl"); builder.add_edge("review_agpl", "compact"); builder.add_edge("compact", "finalize"); builder.add_edge("finalize", END)
+    builder.add_edge(START, "initialize")
+    builder.add_edge("initialize", "discover")
+    builder.add_edge("discover", "review_base")
+    if enable_sso_demo:
+        builder.add_edge("review_base", "apply_sso_change")
+        builder.add_edge("apply_sso_change", "review_sso")
+        builder.add_edge("review_sso", "apply_agpl_change")
+    else:
+        builder.add_edge("review_base", "apply_agpl_change")
+    builder.add_edge("apply_agpl_change", "review_agpl")
+    builder.add_edge("review_agpl", "compact")
+    builder.add_edge("compact", "finalize")
+    builder.add_edge("finalize", END)
     return builder.compile(checkpointer=checkpointer or InMemorySaver())
 

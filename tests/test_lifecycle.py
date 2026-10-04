@@ -19,7 +19,7 @@ def runtime_at(tmp_path):
 
 def test_full_graph_proves_five_mechanisms(tmp_path):
     runtime = runtime_at(tmp_path)
-    graph = build_graph(settings=runtime.settings, repo_root=tmp_path, runtime=runtime)
+    graph = build_graph(settings=runtime.settings, repo_root=tmp_path, runtime=runtime, enable_sso_demo=True)
     states = list(graph.stream({}, {'configurable': {'thread_id': 'test'}}, stream_mode='values'))
     final = states[-1]
     assert set(final['candidates']) == {'demo/beta', 'demo/gamma'}
@@ -64,3 +64,17 @@ def test_unknown_mandatory_sso_fails_closed():
 def test_stale_candidate_never_enters_final_prompt(tmp_path):
     runtime = runtime_at(tmp_path)
     assert runtime.synthesize({'policy': runtime.initial_policy(), 'candidates': {'a': {'status': 'stale', 'analysis': {'rest_client': True}}}}).startswith('No verified')
+
+
+def test_default_run_skips_sso_and_keeps_eligible_candidates(tmp_path):
+    runtime = runtime_at(tmp_path)
+    graph = build_graph(settings=runtime.settings, repo_root=tmp_path, runtime=runtime)
+    final = graph.invoke({}, {'configurable': {'thread_id': 'no-sso'}})
+    assert final['policy']['enterprise_sso_required'] is False
+    assert final['policy']['applied_changes'] == ['allow-agpl']
+    assert set(final['candidates']) == {'demo/alpha', 'demo/beta', 'demo/gamma'}
+    assert all(r['status'] == 'evaluated' for r in final['candidates'].values())
+    assert not any(e['type'] == 'openspec_change_applied' and e['change'] == 'require-enterprise-sso' for e in final['events'])
+    contexts = [e for e in final['events'] if e['type'] == 'context_assembled']
+    assert all('enterprise_sso_verification' not in e['loaded_skills'] for e in contexts)
+    assert all(not e['jit_files'] for e in contexts)
