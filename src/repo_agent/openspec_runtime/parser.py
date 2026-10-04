@@ -33,7 +33,7 @@ def _sections(text: str) -> Iterable[tuple[str | None, str]]:
         return None
 
     for line in text.splitlines():
-        m = re.match(r"^## (ADDED|MODIFIED|REMOVED|RENAMED) Requirements\\s*$", line)
+        m = re.match(r"^## (ADDED|MODIFIED|REMOVED|RENAMED) Requirements\s*$", line)
         if m:
             previous = flush()
             if previous:
@@ -50,13 +50,14 @@ def parse_spec(path: str | Path) -> SpecDocument:
     path = Path(path)
     text = path.read_text(encoding="utf-8")
     requirements: list[Requirement] = []
+
     for operation, section in _sections(text):
-        matches = list(re.finditer(r"^### Requirement: (.+?)\\s*$", section, flags=re.M))
+        matches = list(re.finditer(r"^### Requirement: (.+?)\s*$", section, flags=re.M))
         for index, match in enumerate(matches):
             start = match.end()
             end = matches[index + 1].start() if index + 1 < len(matches) else len(section)
             block = section[start:end].strip()
-            scenario_matches = list(re.finditer(r"^#### Scenario: (.+?)\\s*$", block, flags=re.M))
+            scenario_matches = list(re.finditer(r"^#### Scenario: (.+?)\s*$", block, flags=re.M))
             if scenario_matches:
                 body = block[: scenario_matches[0].start()].strip()
                 scenarios = []
@@ -67,5 +68,14 @@ def parse_spec(path: str | Path) -> SpecDocument:
             else:
                 body = block
                 scenarios = []
-            requirements.append(Requirement(name=match.group(1).strip(), body=body, scenarios=scenarios, operation=operation))
+
+            requirements.append(
+                Requirement(
+                    name=match.group(1).strip(),
+                    body=body,
+                    scenarios=scenarios,
+                    operation=operation,
+                )
+            )
+
     return SpecDocument(path=path, requirements=requirements)
