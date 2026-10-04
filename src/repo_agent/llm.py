@@ -20,7 +20,11 @@ class OpenAIResponsesLLM:
         self.model = model
 
     def text(self, instructions: str, user_input: str) -> LLMResult:
-        response = self.client.responses.create(model=self.model, instructions=instructions, input=user_input)
+        response = self.client.responses.create(
+            model=self.model,
+            instructions=instructions,
+            input=user_input,
+        )
         usage = getattr(response, "usage", None)
         return LLMResult(
             text=response.output_text,
@@ -31,12 +35,12 @@ class OpenAIResponsesLLM:
 
 def parse_json_loose(text: str) -> dict:
     value = text.strip()
-    value = re.sub(r"^```(?:json)?\\s*", "", value)
-    value = re.sub(r"\\s*```$", "", value)
+    value = re.sub(r"^```(?:json)?\s*", "", value)
+    value = re.sub(r"\s*```$", "", value)
     try:
         return json.loads(value)
     except json.JSONDecodeError:
-        match = re.search(r"\\{.*\\}", value, flags=re.S)
+        match = re.search(r"\{.*\}", value, flags=re.S)
         if not match:
             raise
         return json.loads(match.group(0))
