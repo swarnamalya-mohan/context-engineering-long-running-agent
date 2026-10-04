@@ -1,0 +1,6 @@
+SKILLS: dict[str, str] = {
+    "feature_verification": """SKILL: FEATURE VERIFICATION\n1. Verify REST client, GraphQL, collaboration, self-hosting, OpenAPI, and other relevant capabilities.\n2. Attach brief evidence to claims.\n3. Use null when supplied evidence is insufficient.\n4. Distinguish open-source features from paid-only features when possible.\n""",
+    "enterprise_sso_verification": """SKILL: ENTERPRISE SSO VERIFICATION\n1. Look for SAML, OIDC, OAuth-based enterprise identity, SSO documentation, or configuration.\n2. Explicitly determine whether SSO is in the open-source edition, paid-only, or unclear.\n3. Never treat generic OAuth login as verified enterprise SSO without supporting evidence.\n""",
+    "license_audit": """SKILL: LICENSE AUDIT\n1. Inspect supplied license metadata and README evidence.\n2. Flag dual-licensing, source-available, or unclear licensing.\n3. Do not infer licensing from popularity.\n""",
+    "final_comparison": """SKILL: FINAL COMPARISON\n1. Compare only against the CURRENT effective OpenSpec policy.\n2. Hard requirements dominate weighted preference signals.\n3. Cite stored evidence for major recommendations.\n4. Explain rank changes caused by specification changes.\n""",
+}
