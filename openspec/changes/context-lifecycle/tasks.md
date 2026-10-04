@@ -1,0 +1,6 @@
+- [x] Add scoped recall and external source snapshots
+- [x] Gate authentication document reads and skill activation
+- [x] Mark conclusions stale and exclude them from synthesis
+- [x] Re-evaluate license-affected candidates and fail unverified mandatory features
+- [x] Add synthetic rehearsal, checkpoint recovery demonstration and valid Colab cells
+- [x] Verify behavioral invariants with the full graph

@@ -23,8 +23,9 @@ def validate_candidate(record: dict[str, Any], policy: dict[str, Any]) -> list[s
     if analysis:
         checks = {"self_hosted_required": "self_hosted", "rest_client_required": "rest_client", "team_collaboration_required": "team_collaboration", "enterprise_sso_required": "enterprise_sso"}
         for policy_key, analysis_key in checks.items():
-            if policy.get(policy_key) is True and analysis.get(analysis_key) is False:
-                reasons.append(f"hard requirement failed: {analysis_key}")
+            if policy.get(policy_key) is True and analysis.get(analysis_key) is not True:
+                reasons.append(f"hard requirement failed or unverified: {analysis_key}")
         if policy.get("enterprise_sso_required") and analysis.get("enterprise_sso_paid_only") is True:
             reasons.append("hard requirement failed: enterprise_sso is paid-only")
     return reasons
+

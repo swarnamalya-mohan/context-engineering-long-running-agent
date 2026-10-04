@@ -21,3 +21,21 @@ def working_context_tokens(state: dict[str, Any], model: str) -> int:
         state.get("working_history") or []
     )
     return count_tokens(text, model)
+
+
+
+def select_memory(state: dict[str, Any], repo_name: str, limit: int = 8) -> dict[str, Any]:
+    """Exact entity recall, bounded and deduplicated; never returns other repos."""
+    seen = set()
+    selected = []
+    for item in reversed(state.get("evidence", [])):
+        key = (item.get("claim"), item.get("source"), item.get("snippet"))
+        if item.get("repo") == repo_name and key not in seen:
+            seen.add(key)
+            selected.append(item)
+        if len(selected) >= limit:
+            break
+    record = (state.get("candidates", {}).get(repo_name)
+              or state.get("rejected", {}).get(repo_name) or {})
+    return {"repo": repo_name, "status": record.get("status"),
+            "stale_fields": record.get("stale_fields", []), "evidence": selected}

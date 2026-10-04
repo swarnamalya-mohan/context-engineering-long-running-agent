@@ -50,3 +50,18 @@ class GitHubTool:
     def releases(self, full_name: str, n: int = 3) -> list[dict[str, Any]]:
         response = self._get(f"{self.API}/repos/{full_name}/releases", params={"per_page": n})
         return [{"tag_name": release.get("tag_name"), "published_at": release.get("published_at"), "name": release.get("name")} for release in response.json()[:n]]
+
+
+    def file_map(self, full_name: str) -> list[str]:
+        metadata = self._get(f"{self.API}/repos/{full_name}").json()
+        branch = metadata["default_branch"]
+        tree = self._get(f"{self.API}/repos/{full_name}/git/trees/{branch}",
+                         params={"recursive": "1"}).json()
+        return [item["path"] for item in tree.get("tree", [])
+                if item.get("type") == "blob"]
+
+    def read_file(self, full_name: str, path: str) -> str:
+        headers = dict(self.session.headers)
+        headers["Accept"] = "application/vnd.github.raw+json"
+        response = self._get(f"{self.API}/repos/{full_name}/contents/{path}", headers=headers)
+        return response.text[:self.max_readme_chars]

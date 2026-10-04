@@ -1,152 +1,58 @@
-# Context Engineering for Long-Running Agents
+# Context engineering for a long-running repository agent
 
-Conference demo project: a LangGraph agent that researches open-source alternatives to Postman while demonstrating context engineering, OpenSpec-driven requirement changes, isolated subagents, deterministic hooks, external evidence, and compaction.
+An OpenAI + LangGraph conference demo showing **WRITE → SELECT → COMPRESS → ISOLATE → INVALIDATE** under changing OpenSpec requirements.
 
-## Architecture
+## Run in Colab
 
-- **OpenSpec** = durable intent and explicit requirement changes
-- **LangGraph** = long-running orchestration and checkpoints
-- **OpenAI Responses API** = repo-review and synthesis reasoning
-- **GitHub API** = repository discovery, README evidence, releases
-- **Rules** = relevance-gated instructions
-- **Skills** = procedures loaded only when needed
-- **Hooks** = deterministic tool filtering, validation, spec-change handling, pre-compaction persistence
-- **External evidence/state** = repo facts and rejection history stay outside transient LLM context
+[Open the conference notebook](https://colab.research.google.com/github/swarnamalya-mohan/context-engineering-long-running-agent/blob/feature/initial-agent-implementation/notebooks/conference_demo.ipynb)
 
-> **Graph state is what the system knows. Context is what the model sees right now.**
-
-## Demo storyline
-
-```text
-Base OpenSpec
-  ↓
-Discover GitHub candidates
-  ↓
-Metadata screening
-  ↓
-Isolated repo-review subagents
-  ↓
-Store evidence + rank
-  ↓
-OpenSpec change: enterprise SSO becomes mandatory
-  ↓
-Re-evaluate prior candidates
-  ↓
-Load SSO verification skill only now
-  ↓
-OpenSpec change: AGPL-3.0 becomes allowed
-  ↓
-Reopen stale license rejections
-  ↓
-Force compaction
-  ↓
-Evidence-backed Top 3
-```
-
-There is intentionally **no Kubernetes spec change**. The main SDD change is **enterprise SSO becoming mandatory**, which directly changes the product-selection outcome.
-
-## Repository structure
-
-```text
-openspec/
-  specs/repo-evaluation/spec.md
-  changes/
-    require-enterprise-sso/
-    allow-agpl/
-
-src/repo_agent/
-  graph.py
-  runtime.py
-  agents/
-  hooks/
-  skills/
-  tools/
-  openspec_runtime/
-
-notebooks/
-  conference_demo.ipynb
-
-tests/
-```
-
-## Run locally
+The implementation currently lives on `feature/initial-agent-implementation` (draft PR #1), so clone that branch:
 
 ```bash
-git clone https://github.com/swarnamalya-mohan/context-engineering-long-running-agent.git
+git clone --branch feature/initial-agent-implementation https://github.com/swarnamalya-mohan/context-engineering-long-running-agent.git
 cd context-engineering-long-running-agent
-
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-Set environment variables:
-
-```bash
-export OPENAI_API_KEY="..."
-export GITHUB_TOKEN="..."
-export OPENAI_MODEL="gpt-5.4-mini"
-export TARGET_REPOS=30
-export DEEP_REVIEW=10
-```
-
-Run with streamed LangGraph updates:
-
-```bash
-python -m repo_agent --stream
-```
-
-For the full conference experiment:
-
-```bash
-export TARGET_REPOS=100
-export DEEP_REVIEW=20
-python -m repo_agent --stream
-```
-
-Artifacts are written to `artifacts/`, including pre-compaction snapshots and final state.
-
-## OpenSpec
-
-The durable source of truth is:
-
-```text
-openspec/specs/repo-evaluation/spec.md
-```
-
-The first live requirement change is:
-
-```text
-openspec/changes/require-enterprise-sso/
-```
-
-The agent converts the human-readable OpenSpec artifacts into a compact runtime policy. The Markdown spec remains the auditable source of truth.
-
-## Context engineering mapping
-
-| Concept | Implementation |
-|---|---|
-| Durable intent | OpenSpec main spec |
-| Requirement change | OpenSpec delta |
-| Conditional rules | `agents/rules.py` |
-| On-demand skills | `skills/catalog.py` |
-| Tool-output firewall | `hooks/context_firewall.py` |
-| Hard validation | `hooks/validation.py` |
-| Spec-change hook | `hooks/spec_change.py` |
-| Pre-compaction checkpoint | `hooks/pre_compact.py` |
-| Isolated subagents | `agents/repo_reviewer.py` |
-| Long-running orchestration | `graph.py` |
-| Durable evidence | LangGraph state + `artifacts/` |
-
-## Tests
-
-```bash
 pip install -e '.[dev]'
-pytest -q
+python -m repo_agent.offline
+python -m pytest -q
 ```
 
-The unit tests do not require API keys.
+The offline rehearsal uses **synthetic repositories and scripted LLM responses**, with the same graph, reviews, validation, artifact storage, and compaction hooks as live mode. It proves orchestration behavior, not live model accuracy. First tokenization may download tiktoken encoding data.
 
-## Conference reliability
+For live GitHub discovery and OpenAI Responses API reviews:
 
-Run one full experiment before the talk and keep `artifacts/final_state.json` as a fallback. The live demo should show the behavior, but the conference should not depend on Wi-Fi or API availability.
+```bash
+export OPENAI_API_KEY='your-key'
+export OPENAI_MODEL='gpt-4o-mini'
+# Optional: export GITHUB_TOKEN='your-token'
+python -m repo_agent --stream
+```
+
+## What the audience sees
+
+| Mechanism | Implementation | Observable proof |
+|---|---|---|
+| Write | Raw source snapshots, durable candidate records and evidence | `artifacts/raw/`, phase snapshots and compaction checkpoint |
+| Select | Exact repository memory retrieval, newest-first deduplication, eight-item limit | `selected_memory_count`; no other repository history in worker context |
+| Just-in-time documents | File map followed by up to three authentication-document reads | `jit_files` stays empty until SSO becomes mandatory |
+| Progressive skills | Requirement-gated workflow instructions | `loaded_skills` adds SSO verification after the spec change |
+| Compress | README relevance filtering; bounded summary replaces transient history | Measured raw/filtered tokens; before/after compaction tokens |
+| Isolate | Independent repository review calls with scoped metadata and evidence | Worker prompts exclude global history and previous rankings |
+| Invalidate | Changed policy fields mark affected conclusions stale | `conclusion_invalidated`; stale candidates excluded from final synthesis |
+| Reopen | AGPL policy change reopens prior license-only rejections | Gamma is reviewed under the updated policy |
+| Recover | JSON checkpoint retains policy, decisions, evidence, phase and queue | Notebook reconstructs runtime state after clearing history |
+
+Scenario: Alpha and Beta satisfy the base spec. Enterprise SSO becomes mandatory; Alpha fails, Beta remains eligible. Allowing AGPL reopens Gamma, which passes SSO. These names are fictional fixtures.
+
+## Architecture and limits
+
+`openspec/specs/` defines the base contract. `openspec/changes/` provides SSO and license changes. The runtime parses a **small supported subset** of OpenSpec Markdown requirement names; it is not a general OpenSpec CLI implementation. Effective policy is separate from transient working history.
+
+Each reviewer gets current policy, scoped metadata, filtered README, recent releases, selected memory, and applicable skill text. Authentication documents are fetched only when SSO is required. Raw outputs are stored externally and excluded from later LLM contexts; artifact paths remain in telemetry. Character limits bound README and document excerpts; token metrics cover the assembled reviewer prompt and README filtering separately.
+
+Required capabilities with insufficient evidence fail validation. Authentication path selection is heuristic and can miss documentation; this produces unverified results rather than invented support. Unknown license metadata needs additional audit. Live discovery is bounded and not exhaustive.
+
+The default LangGraph checkpointer is `InMemorySaver`; JSON snapshots support manual runtime recovery, not automatic process-resumable graph execution. Compaction summarizes transient history with the previous summary and keeps a bounded continuation. Durable evidence remains available independently. Prompt caching and semantic/vector retrieval are not implemented in this demo.
+
+## Inspect the evidence
+
+The notebook displays per-call token counts, loaded skills, files read, invalidations, reopen events, candidate decisions, and compaction measurements. Live API usage is recorded separately from locally counted prompt tokens. Artifacts are ignored by Git and can contain fetched repository text; API keys are read from environment variables or Colab Secrets.
