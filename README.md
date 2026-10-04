@@ -60,3 +60,5 @@ The notebook displays per-call token counts, loaded skills, files read, invalida
 ## Live-run diagnostics
 
 Discovery queries product names/descriptions and API-client topics across all four searches before ranking, and filters obvious resource directories. This is a heuristic relevance filter, not exhaustive product discovery. Repository reviews use OpenAI Responses structured parsing with a Pydantic schema; refusals or incomplete output produce an explicit `review_failed` status. The notebook shows review errors separately from policy rejections. An empty recommendation can still be a valid result under mandatory SSO when supplied sources do not verify support.
+
+The live notebook prints decision reports after base, SSO, and AGPL review stages. When no final candidates qualify, final output includes candidate counts, the highest-scoring rejected reviews with full reasons, and pending/failed review statuses. These diagnostics are not endorsements of ineligible candidates.

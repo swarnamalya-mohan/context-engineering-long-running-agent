@@ -13,6 +13,7 @@ from repo_agent.hooks import checkpoint_before_compaction, impacted_candidates, 
 from repo_agent.llm import OpenAIResponsesLLM
 from repo_agent.openspec_runtime import apply_change, load_main_policy
 from repo_agent.scoring import score_candidate
+from repo_agent.reporting import decision_report
 from repo_agent.skills import SKILLS
 from repo_agent.state_store import ArtifactStore, event
 from repo_agent.tools.github import GitHubTool
@@ -141,7 +142,7 @@ class AgentRuntime:
         compact = [{"repo": r["full_name"], "url": r.get("html_url"), "score": r.get("score"), "license": r.get("license"), "stars": r.get("stars"), "analysis": r.get("analysis")} for r in finalists]
         prompt = f"CURRENT EFFECTIVE OPENSPEC POLICY:\n{json.dumps(state['policy'], indent=2)}\n\nFINALISTS:\n{json.dumps(compact, indent=2)}\n\nDURABLE EVIDENCE:\n{json.dumps(evidence[:100], indent=2)}\n\n{SKILLS['final_comparison']}\nReturn a concise Top 3 with fit, evidence, caveats, and the most important rank change caused by OpenSpec changes."
         if not finalists:
-            return "No verified candidates satisfy the current policy; investigate missing evidence or adjust requirements."
+            return "No verified candidates satisfy the current policy.\n\n" + decision_report(state)
         result = self.llm.text("You are the final decision agent. Use only the current policy and supplied evidence.", prompt)
         metrics = state.setdefault("metrics", {})
         metrics["input_tokens"] = int(metrics.get("input_tokens", 0)) + result.input_tokens
