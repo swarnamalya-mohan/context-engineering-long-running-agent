@@ -7,6 +7,7 @@ from repo_agent.agents.rules import select_rules
 from repo_agent.hooks import filter_tool_output
 from repo_agent.llm import OpenAIResponsesLLM, parse_json_loose
 from repo_agent.skills import SKILLS
+from repo_agent.review_schema import ReviewAnalysis
 from repo_agent.tools.github import GitHubTool
 
 BASE_INSTRUCTIONS = """
@@ -109,8 +110,9 @@ RELEVANCE-GATED RULES:
 ON-DEMAND SKILLS:
 {''.join(SKILLS[name] for name in skill_names)}
 """
-    result = llm.text(BASE_INSTRUCTIONS, payload)
-    parsed = parse_json_loose(result.text)
+    review_call = getattr(llm, "review", llm.text)
+    result = review_call(BASE_INSTRUCTIONS, payload)
+    parsed = ReviewAnalysis.model_validate(parse_json_loose(result.text)).model_dump()
     from repo_agent.context import count_tokens
     telemetry = {**firewall_metrics, "raw_artifact": artifact, "jit_files": jit_files, "jit_errors": jit_errors,
                  "raw_tokens": count_tokens(raw_readme, llm.model),

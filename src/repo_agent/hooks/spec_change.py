@@ -16,7 +16,7 @@ def impacted_candidates(old_policy: dict[str, Any], new_policy: dict[str, Any], 
         new_allowed = set(new_policy.get("allowed_licenses", []))
         return delta, sorted(name for name, record in {**candidates, **rejected}.items()
                              if record.get("license") in old_allowed ^ new_allowed)
-    reviewed = [name for name, record in {**candidates, **rejected}.items() if record.get("analysis")]
+    reviewed = [name for name, record in {**candidates, **rejected}.items() if record.get("analysis") or record.get("status") == "review_failed"]
     return delta, sorted(set(reviewed))
 
 

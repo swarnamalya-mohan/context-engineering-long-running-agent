@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 
 from openai import OpenAI
+from repo_agent.review_schema import ReviewAnalysis
 
 
 @dataclass
@@ -32,6 +33,23 @@ class OpenAIResponsesLLM:
             output_tokens=int(getattr(usage, "output_tokens", 0) or 0) if usage else 0,
         )
 
+    def review(self, instructions: str, user_input: str) -> LLMResult:
+        response = self.client.responses.parse(
+            model=self.model,
+            instructions=instructions,
+            input=user_input,
+            text_format=ReviewAnalysis,
+        )
+        parsed = response.output_parsed
+        if parsed is None:
+            raise ValueError(f"Review did not return structured analysis (status={response.status}).")
+        usage = response.usage
+        return LLMResult(
+            text=parsed.model_dump_json(),
+            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+        )
+
 
 def parse_json_loose(text: str) -> dict:
     value = text.strip()
@@ -44,3 +62,4 @@ def parse_json_loose(text: str) -> dict:
         if not match:
             raise
         return json.loads(match.group(0))
+

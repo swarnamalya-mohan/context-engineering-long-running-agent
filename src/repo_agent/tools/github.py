@@ -24,21 +24,24 @@ class GitHubTool:
         return response
 
     def search_alternatives(self, product: str, target: int) -> list[dict[str, Any]]:
-        queries = [f'"{product} alternative" in:readme', '"API client" in:name,description stars:>50', '"REST client" in:name,description stars:>50', 'topic:api-client stars:>20']
+        if target <= 0:
+            return []
+        # Search product metadata first; README mentions often return directories.
+        queries = ['"API client" in:name,description stars:>20',
+                   '"REST client" in:name,description stars:>20',
+                   'topic:api-client stars:>20',
+                   f'"{product} alternative" in:name,description']
         found: dict[str, dict[str, Any]] = {}
         for query in queries:
-            for page in range(1, 4):
-                if len(found) >= target:
-                    break
-                response = self._get(f"{self.API}/search/repositories", params={"q": query, "sort": "stars", "order": "desc", "per_page": min(100, target), "page": page})
-                items = response.json().get("items", [])
-                if not items:
-                    break
-                for item in items:
+            response = self._get(f"{self.API}/search/repositories", params={
+                "q": query, "sort": "stars", "order": "desc",
+                "per_page": min(100, max(30, target))})
+            for item in response.json().get("items", []):
+                if candidate_relevance(item) > 0:
                     found[item["full_name"]] = item
-                    if len(found) >= target:
-                        break
-        return list(found.values())[:target]
+        ranked = sorted(found.values(), key=lambda item: (
+            candidate_relevance(item), item.get("stargazers_count", 0)), reverse=True)
+        return ranked[:target]
 
     def read_readme(self, full_name: str) -> str:
         owner, repo = full_name.split("/", 1)
@@ -65,3 +68,20 @@ class GitHubTool:
         headers["Accept"] = "application/vnd.github.raw+json"
         response = self._get(f"{self.API}/repos/{full_name}/contents/{path}", headers=headers)
         return response.text[:self.max_readme_chars]
+
+
+def candidate_relevance(item: dict[str, Any]) -> int:
+    """Heuristic discovery filter, not proof of feature support."""
+    name = item.get("full_name", "").lower()
+    description = (item.get("description") or "").lower()
+    text = name + " " + description
+    if item.get("archived") or any(term in text for term in (
+        "awesome", "curated list", "resource list", "collection of resources",
+        "sample code", "code samples", "100-days", "free-resource")):
+        return 0
+    phrases = ("api client", "rest client", "postman alternative", "alternative to postman",
+               "api testing", "api development", "http client", "api platform")
+    score = sum(3 for phrase in phrases if phrase in text)
+    topics = set(item.get("topics") or [])
+    score += 2 * len(topics & {"api-client", "rest-client", "api-testing", "http-client"})
+    return score

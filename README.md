@@ -56,3 +56,7 @@ The default LangGraph checkpointer is `InMemorySaver`; JSON snapshots support ma
 ## Inspect the evidence
 
 The notebook displays per-call token counts, loaded skills, files read, invalidations, reopen events, candidate decisions, and compaction measurements. Live API usage is recorded separately from locally counted prompt tokens. Artifacts are ignored by Git and can contain fetched repository text; API keys are read from environment variables or Colab Secrets.
+
+## Live-run diagnostics
+
+Discovery queries product names/descriptions and API-client topics across all four searches before ranking, and filters obvious resource directories. This is a heuristic relevance filter, not exhaustive product discovery. Repository reviews use OpenAI Responses structured parsing with a Pydantic schema; refusals or incomplete output produce an explicit `review_failed` status. The notebook shows review errors separately from policy rejections. An empty recommendation can still be a valid result under mandatory SSO when supplied sources do not verify support.

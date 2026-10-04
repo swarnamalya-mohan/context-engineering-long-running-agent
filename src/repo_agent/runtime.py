@@ -68,12 +68,17 @@ class AgentRuntime:
                 try:
                     results[name] = future.result()
                 except Exception as exc:
+                    record = candidates.get(name) or rejected.get(name)
+                    if record:
+                        record["status"] = "review_failed"
+                        record["review_error"] = str(exc)
                     state.setdefault("events", []).append(event("review_error", repo=name, error=str(exc)))
         for name, (analysis, telemetry) in results.items():
             record = candidates.get(name) or rejected.pop(name, None)
             if not record:
                 continue
             candidates[name] = record
+            record.pop("review_error", None)
             record.pop("stale_fields", None)
             record["analysis"] = analysis
             record["spec_version"] = "+".join(policy.get("applied_changes") or []) or "base"
